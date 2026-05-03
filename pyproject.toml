@@ -35,6 +35,12 @@ dependencies = [
 [project.scripts]
 tradingagents = "cli.main:app"
 
+[project.optional-dependencies]
+codex-oauth = [
+    "langchain-codex-oauth>=1.0,<1.1",
+    "socksio>=1.0.0",
+]
+
 [tool.setuptools.packages.find]
 include = ["tradingagents*", "cli*"]
 
