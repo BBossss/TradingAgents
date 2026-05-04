@@ -5,6 +5,11 @@ from tradingagents.agents.utils.agent_utils import (
     get_language_instruction,
     get_stock_data,
 )
+from tradingagents.agents.analysts.tool_calling import (
+    bind_tools_require_first_call,
+    force_tool_call_if_missing,
+    start_date_for,
+)
 from tradingagents.dataflows.config import get_config
 
 
@@ -71,9 +76,19 @@ Volume-Based Indicators:
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(instrument_context=instrument_context)
 
-        chain = prompt | llm.bind_tools(tools)
+        chain = prompt | bind_tools_require_first_call(llm, tools, state["messages"])
 
         result = chain.invoke(state["messages"])
+        result = force_tool_call_if_missing(
+            result,
+            state["messages"],
+            "get_stock_data",
+            {
+                "symbol": state["company_of_interest"],
+                "start_date": start_date_for(current_date, 365),
+                "end_date": current_date,
+            },
+        )
 
         report = ""
 

@@ -8,6 +8,10 @@ from tradingagents.agents.utils.agent_utils import (
     get_insider_transactions,
     get_language_instruction,
 )
+from tradingagents.agents.analysts.tool_calling import (
+    bind_tools_require_first_call,
+    force_tool_call_if_missing,
+)
 from tradingagents.dataflows.config import get_config
 
 
@@ -52,9 +56,18 @@ def create_fundamentals_analyst(llm):
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(instrument_context=instrument_context)
 
-        chain = prompt | llm.bind_tools(tools)
+        chain = prompt | bind_tools_require_first_call(llm, tools, state["messages"])
 
         result = chain.invoke(state["messages"])
+        result = force_tool_call_if_missing(
+            result,
+            state["messages"],
+            "get_fundamentals",
+            {
+                "ticker": state["company_of_interest"],
+                "curr_date": current_date,
+            },
+        )
 
         report = ""
 
